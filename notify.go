@@ -9,15 +9,14 @@ import (
 	"os"
 )
 
-// Message _
-type Message struct {
-	//Unique identifier for the target chat or username of the target channel (in the format @channelusername)
+type telegramMessageObject struct {
+	// Unique identifier for the target chat or username of the target channel
 	ChatID string `json:"chat_id"`
 
 	// Text of the message to be sent
 	Text string `json:"text"`
 
-	// 	Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in your bot's message.
+	// Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in your bot's message.
 	ParseMode string `json:"parse_mode"`
 
 	// Disables link previews for links in this message
@@ -29,7 +28,7 @@ type Message struct {
 
 const parseModeMarkdown = "Markdown"
 
-var messageSkeleton Message
+var message telegramMessageObject
 
 func main() {
 	checkForDefinedEnvVars()
@@ -38,19 +37,24 @@ func main() {
 }
 
 func defineDefaultMessage() {
-	messageSkeleton.ChatID = os.Getenv("TELEGRAM_CHAT_ID")
-	messageSkeleton.ParseMode = parseModeMarkdown
-	messageSkeleton.DisableWebPagePreview = true
-	messageSkeleton.DisableNotification = false
+	message.ChatID = os.Getenv("TELEGRAM_CHAT_ID")
+	message.ParseMode = parseModeMarkdown
+	message.DisableWebPagePreview = true
+	message.DisableNotification = false
 }
 
 func sendMessage(text string) error {
-	messageSkeleton.Text = text
+	message.Text = text
 
 	buf := new(bytes.Buffer)
-	json.NewEncoder(buf).Encode(messageSkeleton)
+	json.NewEncoder(buf).Encode(message)
 
-	url := fmt.Sprintf("%s%s/%s", "https://api.telegram.org/bot", os.Getenv("TELEGRAM_BOT_TOKEN"), "sendMessage")
+	url := fmt.Sprintf(
+		"%s%s/%s",
+		"https://api.telegram.org/bot",
+		os.Getenv("TELEGRAM_BOT_TOKEN"),
+		"sendMessage",
+	)
 
 	request, _ := http.NewRequest("POST", url, buf)
 	request.Header.Set("Content-Type", "application/json")
@@ -68,10 +72,7 @@ func sendMessage(text string) error {
 
 func tellJobIsSuccessful() {
 	user := fmt.Sprintf("@%s", os.Getenv("GITLAB_USER_LOGIN"))
-
 	url := fmt.Sprintf("%s/commit/%s", os.Getenv("CI_PROJECT_URL"), os.Getenv("CI_COMMIT_SHA"))
-	url = fmt.Sprintf("%s (%s)", url, os.Getenv("CI_COMMIT_SHA"))
-
 	message := fmt.Sprintf("%s just deployed an update on branch %s\n%s", user, os.Getenv("CI_COMMIT_REF_NAME"), url)
 
 	err := sendMessage(message)
